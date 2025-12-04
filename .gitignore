@@ -1,0 +1,15 @@
+# 忽略所有檔案和資料夾
+*
+
+# 允許所有目錄中的 .py 檔案
+!*/  
+!*.py  
+!*.json
+
+# 允許 .gitignore 文件
+!.gitignore
+
+# 允許 .訓練日誌 
+!訓練日誌.txt
+!autocorrelation.txt
+!feature.txt
