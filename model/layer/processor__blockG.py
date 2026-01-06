@@ -1,0 +1,80 @@
+import torch
+import torch.nn as nn
+
+from model.layer.gat_edge_before_ffnG_fix import GATv2Conv
+from model.SG_module import SGModule
+from torch.utils.checkpoint import checkpoint
+
+class ProcessorBlock(nn.Module):
+    def __init__(
+        self,
+        hidden_dim: int,
+        heads: int,
+        edge_dim_in: int,
+        num_layers: int,
+        use_transconv: bool = True,
+        use_checkpoint: bool = True,
+        ffn_ratio: float = 1.0, 
+    ):
+        super().__init__()
+        self.num_layers = num_layers
+        self.use_transconv = use_transconv
+        self.use_checkpoint = use_checkpoint
+
+        # 投影边特征
+        self.edge_proj = nn.Linear(edge_dim_in, hidden_dim)
+        # GATv2Conv 层列表
+        self.gat_layers = nn.ModuleList()
+        self.norms = nn.ModuleList()
+        for i in range(num_layers):
+            in_ch = hidden_dim if i == 0 else hidden_dim // heads
+            out_ch = hidden_dim // heads
+            self.gat_layers.append(
+                GATv2Conv(
+                    in_channels=in_ch,
+                    out_channels=out_ch,
+                    heads=heads,
+                    edge_dim=hidden_dim,
+                    upd_hidden_dim=hidden_dim,
+                    residual=True,
+                    add_self_loops=False,
+                    ffn_ratio=ffn_ratio,
+                )
+            )
+            # 最后一层之后不做 norm
+            if i < num_layers - 1:
+                self.norms.append(nn.LayerNorm(out_ch))
+        # TransConv 分支
+        if use_transconv:
+            self.alpha = nn.Parameter(torch.tensor(0.5))
+            self.trans = SGModule(
+                in_channels=hidden_dim,
+                hidden_channels=hidden_dim // heads,
+                num_layers=1,
+                num_heads=heads,
+                dropout=0.1,
+            )
+            self.concat_norm = nn.LayerNorm(hidden_dim // heads)
+
+    def forward(self, mesh_enc, edge_index, edge_attr, batch=None):
+        # 初始化
+        x = mesh_enc
+        e = self.edge_proj(edge_attr)
+        # GATv2 分支 with optional checkpoint
+        for i, gat in enumerate(self.gat_layers):
+            if self.use_checkpoint:
+                x, e = checkpoint(gat, x, edge_index, e,use_reentrant=False)
+            else:
+                x, e = gat(x, edge_index, e)
+            if i < self.num_layers - 1:
+                x = self.norms[i](x)
+        # 如果不使用 TransConv，就直接返回
+        if not self.use_transconv:
+            return x
+        # 否则执行 TransConv（用原始编码 mesh_enc）
+        with torch.amp.autocast("cuda", dtype=torch.float32):
+            trans_out = self.trans(mesh_enc, batch)
+        # 融合、再归一
+        alpha = torch.sigmoid(self.alpha)
+        out = alpha * x + (1.0 - alpha) * trans_out
+        return self.concat_norm(out)
