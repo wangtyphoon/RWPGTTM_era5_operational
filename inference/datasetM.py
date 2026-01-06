@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import logging
+from functools import lru_cache
 from torch_geometric.data import Data, Dataset
 from torch_geometric.loader import DataLoader
 import torch
@@ -260,7 +261,41 @@ class WeatherGraphNPZValDataset(_BaseWeatherGraphNPZDataset):
 
 # Backward compatibility: validation scripts historically import WeatherGraphNPZDataset
 WeatherGraphNPZDataset = WeatherGraphNPZValDataset
-        
+
+@lru_cache(maxsize=1)
+def _load_current_feature_table():
+    feature_table_path = Path(__file__).resolve().parent / "current_feature_table.csv"
+    df = pd.read_csv(feature_table_path)
+    df = df.sort_values("idx")
+    return df["feature"].tolist()
+
+
+@lru_cache(maxsize=1)
+def _get_current_feature_indices():
+    features = _load_current_feature_table()
+    time_indices = [i for i, f in enumerate(features) if f.startswith("time:")]
+    if not time_indices:
+        raise ValueError("current_feature_table missing time:* entries")
+    time_start = time_indices[0]
+    time_end = time_indices[-1]
+    try:
+        tisr_idx = features.index("sfc_average:tisr")
+    except ValueError as exc:
+        raise ValueError("current_feature_table missing sfc_average:tisr") from exc
+    try:
+        graph_start = features.index("graph_const_0")
+        graph_end = features.index("graph_const_6")
+    except ValueError as exc:
+        raise ValueError("current_feature_table missing graph_const_0..6") from exc
+    return {
+        "time_start": time_start,
+        "time_end": time_end,
+        "tisr_idx": tisr_idx,
+        "graph_start": graph_start,
+        "graph_end": graph_end,
+    }
+
+
 def process_data_step(current_data, next_data, step=0, first116: torch.Tensor = None):
     """
     使用『已覆寫邊界後』的預報 first116 (Bn, 116) 更新 current_data['grid'].x。
@@ -268,11 +303,16 @@ def process_data_step(current_data, next_data, step=0, first116: torch.Tensor = 
     """
     assert first116 is not None, "process_data_step 需要傳入 first116（已覆寫邊界的預報）"
     prev_step_idx = step - 1
-    # 你現有欄位切法：predict + time(<=121), tisr at 124, graph const(-8:-1), step 最後一欄
-    prev_features = current_data['grid'].x[:, :122]
-    current_features = next_data[prev_step_idx]['grid'].x[:, -10:-1]  # 包含 時間與 欄
-    tisr = current_data['grid'].x[:, 124]
-    graph_feature = current_data['grid'].x[:, -8:-1]
+    idx = _get_current_feature_indices()
+    # 依 current_feature_table 切分欄位，避免硬編號
+    prev_features = current_data['grid'].x[:, :idx["time_end"] + 1]
+    current_features = next_data[prev_step_idx]['grid'].x[:, idx["time_start"]:idx["tisr_idx"] + 1]
+    tisr = current_data['grid'].x[:, idx["tisr_idx"]]
+    graph_feature = current_data['grid'].x[:, idx["graph_start"]:idx["graph_end"] + 1]
+    if first116.shape[1] != idx["time_start"]:
+        raise ValueError(
+            f"first116 feature size {first116.shape[1]} does not match expected {idx['time_start']}"
+        )
     # 用 next_data[step] 的 step 欄（或自己建）作為相對時間
     step_feat = next_data[prev_step_idx]['grid'].x[:, -1].unsqueeze(1)
     current_data['grid'].x = torch.cat([first116, current_features, prev_features, tisr.unsqueeze(1), graph_feature, step_feat], dim=1)

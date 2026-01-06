@@ -49,9 +49,7 @@ def validate_autoregressive(model,
 
     # 與你舊 val.py 一致的標準化資訊
     weighted_table = os.path.join(BASE_DIR, "next_feature_table_weight.csv")
-    fallback_table = os.path.join(BASE_DIR, "target_mean_std.csv")
-    feature_table_path = weighted_table if os.path.exists(weighted_table) else fallback_table
-    feature_table = pd.read_csv(feature_table_path)
+    feature_table = pd.read_csv(weighted_table)
     mean = feature_table['mean'].values
     std  = feature_table['std'].values
 
@@ -118,13 +116,13 @@ def validate_autoregressive(model,
             if save_step_npz:
                 # 反標準化到實際量級
                 f_np = (pred_step.detach().float().cpu().numpy()) * std + mean
-                #t_np = (truth_step.detach().float().cpu().numpy()) * std + mean
+                t_np = (truth_step.detach().float().cpu().numpy()) * std + mean
                 bidx_np = B_idx.cpu().numpy()
 
                 for i in range(batch_size):
                     mask_i = (bidx_np == i)
                     f_i = f_np[mask_i].astype(np.float32)
-                    #t_i = t_np[mask_i].astype(np.float32)
+                    t_i = t_np[mask_i].astype(np.float32)
                     name_i = sample_names[i] if i < len(sample_names) else sample_names[0]
                     # keep legacy list-style naming, e.g. ['2024051706']_step01.npz
                     name_i = str([name_i])
@@ -137,7 +135,7 @@ def validate_autoregressive(model,
                             f"NaN found in forecast | sample={name_i} "
                             f"| step={step:02d} | channels={nan_channels.tolist()}"
                         )
-                    np.savez(out_path, forecast=f_i)
+                    np.savez(out_path, forecast=f_i, truth=t_i)
 
             # 在「邊界」用答案覆寫模型值
             pred_step_patched = torch.where(boundary_mask_bnC, truth_step, pred_step)
@@ -150,4 +148,13 @@ def validate_autoregressive(model,
                     step=step,                      # 可記錄成相對步
                     first116=pred_step_patched      # 關鍵：已覆寫邊界之後的預報
                 )
+                p_np = current_data['grid'].x[:, :116].detach().float().cpu().numpy() * std + mean
+                bidx_np = B_idx.cpu().numpy()
+                for i in range(batch_size):
+                    mask_i = (bidx_np == i)
+                    p_i = p_np[mask_i].astype(np.float32)
+                    name_i = sample_names[i] if i < len(sample_names) else sample_names[0]
+                    name_i = str([name_i])
+                    out_path = os.path.join(save_folder, f"{name_i}_process_step{step:02d}.npz")
+                    np.savez(out_path, input_data=p_i)
     logger.info("Validation (autoregressive) completed successfully.")
