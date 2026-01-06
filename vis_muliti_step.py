@@ -33,9 +33,9 @@ def create_spatial_weights(H=192, W=192, boundary=8, device=torch.device('cpu'))
     return torch.tensor(w2d, dtype=torch.float32, device=device)  # (H, W)
 
 # 給定要看的日期時間字串（必須跟檔名裡的一樣，例如 '2024122718'）
-TIME_TAG = "2025070312"
+TIME_TAG = "2025070500"
 
-INPUT_DIR = Path(r"inference_outputs\2025070312_2025070312")
+INPUT_DIR = Path(r"inference_outputs\2025070500_2025070500")
 #TARGET_DIR = Path(r"UnetGNNgate7_fix_attention_target_GS192x192_BS1_E1_LR0.001_WD0.1_HD512_PRL16-16-12-8-6_ACC4_SEED3407_FFN2")
 OUTPUT_DIR = INPUT_DIR / "figures"
 TARGET_KEY = "target"

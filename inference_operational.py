@@ -21,8 +21,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Edit these values to control the inference window and runtime options.
-INIT_TIME = "2025070312"
-END_TIME = "2025070312"
+INIT_TIME = "2025070500"
+END_TIME = "2025070500"
 NPZ_ROOT = os.path.join(BASE_DIR, "npz", "operational")
 CHECKPOINT_PATH = os.path.join(
     BASE_DIR,
