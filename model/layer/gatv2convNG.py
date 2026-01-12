@@ -189,11 +189,13 @@ class GATv2ConvN(MessagePassing):
 
         # The number of output channels:
         total_out_channels = out_channels * (heads if concat else 1)
+        ffn_in_channels = out_channels * (2 if residual else 1)
+        ffn_hidden_channels = int(out_channels * 2 * ffn_ratio)
         self.ffn = torch.nn.Sequential(
-            Linear(total_out_channels*2, int((total_out_channels*2)*ffn_ratio), bias=True),
+            Linear(ffn_in_channels, ffn_hidden_channels, bias=True),
             torch.nn.GLU(),
             torch.nn.Dropout(0.1),
-            Linear(int((total_out_channels*2)*ffn_ratio/2), total_out_channels, bias=True),
+            Linear(int(out_channels * ffn_ratio), out_channels, bias=True),
        )
         
         if residual:

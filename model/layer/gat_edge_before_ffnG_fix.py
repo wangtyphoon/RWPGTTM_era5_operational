@@ -78,11 +78,13 @@ class GATv2Conv(MessagePassing):
 
         # node update FFN (after aggregation)
         total_out = out_channels * (heads if concat else 1)
+        node_upd_in = total_out + node_dim_r
+        node_upd_hidden = int(node_upd_in * self.ffn_ratio)
         self.node_upd = nn.Sequential(
-            nn.Linear(total_out*2, int((total_out*2) * self.ffn_ratio)),
+            nn.Linear(node_upd_in, node_upd_hidden),
             nn.GLU(dim=-1),
             nn.Dropout(p=0.1),
-            nn.Linear(int((total_out*2) * self.ffn_ratio/2), total_out),
+            nn.Linear(int(node_upd_hidden / 2), total_out),
         )
 
         if bias:

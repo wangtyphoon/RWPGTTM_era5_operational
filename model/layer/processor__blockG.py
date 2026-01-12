@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from contextlib import nullcontext
 
 from model.layer.gat_edge_before_ffnG_fix import GATv2Conv
 from model.SG_module import SGModule
@@ -72,7 +73,12 @@ class ProcessorBlock(nn.Module):
         if not self.use_transconv:
             return x
         # 否则执行 TransConv（用原始编码 mesh_enc）
-        with torch.amp.autocast("cuda", dtype=torch.float32):
+        autocast_ctx = (
+            torch.amp.autocast("cuda", dtype=torch.float32)
+            if mesh_enc.is_cuda
+            else nullcontext()
+        )
+        with autocast_ctx:
             trans_out = self.trans(mesh_enc, batch)
         # 融合、再归一
         alpha = torch.sigmoid(self.alpha)
