@@ -16,14 +16,14 @@ END_DATE = "2025-07-11"
 
 
 def main():
-    # download_prs(START_DATE, END_DATE)
-    # download_sfc_average(START_DATE, END_DATE)
-    # download_sfc_regular(START_DATE, END_DATE)
+    download_prs(START_DATE, END_DATE)
+    download_sfc_average(START_DATE, END_DATE)
+    download_sfc_regular(START_DATE, END_DATE)
 
-    # process_prs(START_DATE, END_DATE)
-    # process_average(START_DATE, END_DATE)
-    # process_regular(START_DATE, END_DATE)
-    # process_time(START_DATE, END_DATE)
+    process_prs(START_DATE, END_DATE)
+    process_average(START_DATE, END_DATE)
+    process_regular(START_DATE, END_DATE)
+    process_time(START_DATE, END_DATE)
 
     base_npz_dir = os.path.join(os.path.dirname(__file__), "npz", "operational")
     check_targets = [
@@ -40,16 +40,16 @@ def main():
         print(npz_dir)
         check_nan_in_npz_files(npz_dir)
 
-    # swh_dir = os.path.join(base_npz_dir, "sfc", "regular")
-    # if os.path.isdir(swh_dir):
-    #     resize_swh_all(swh_dir, backup=False)
-    # else:
-    #     print(f"Skip swh resize, missing directory: {swh_dir}")
+    swh_dir = os.path.join(base_npz_dir, "sfc", "regular")
+    if os.path.isdir(swh_dir):
+        resize_swh_all(swh_dir, backup=False)
+    else:
+        print(f"Skip swh resize, missing directory: {swh_dir}")
 
-    # if os.path.isdir(swh_dir):
-    #     fill_nan_all(swh_dir)
-    # else:
-    #     print(f"Skip NaN filling, missing directory: {swh_dir}")
+    if os.path.isdir(swh_dir):
+        fill_nan_all(swh_dir)
+    else:
+        print(f"Skip NaN filling, missing directory: {swh_dir}")
 
 
 if __name__ == "__main__":
