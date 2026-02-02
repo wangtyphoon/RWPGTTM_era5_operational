@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from datasetM_tisr import process_data_step, move_to_device                 # 使用你剛改好的介面
+from datasetM import process_data_step, move_to_device                 # 使用你剛改好的介面
 
 BASE_DIR = os.path.dirname(__file__)
 logger = logging.getLogger(__name__)
@@ -146,8 +146,7 @@ def validate_autoregressive(model,
                     current_data=current_data,
                     next_data=next_data,
                     step=step,                      # 可記錄成相對步
-                    first116=pred_step_patched,     # 關鍵：已覆寫邊界之後的預報
-                    sample_names=sample_names,
+                    first116=pred_step_patched      # 關鍵：已覆寫邊界之後的預報
                 )
                 p_np = current_data['grid'].x[:, :116].detach().float().cpu().numpy() * std + mean
                 bidx_np = B_idx.cpu().numpy()
