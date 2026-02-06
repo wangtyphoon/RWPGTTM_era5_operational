@@ -13,7 +13,7 @@ if INFERENCE_DIR not in sys.path:
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from inference.datasetM_tisr import WeatherGraphNPZDataset
+from inference.datasetM_tisr2 import WeatherGraphNPZDataset
 from inference.val_autoregressive import validate_autoregressive
 from model.model_unet import HeteroGNN
 
@@ -33,7 +33,7 @@ CHECKPOINT_PATH = os.path.join(
 SAVE_FOLDER = None
 BATCH_SIZE = 1
 NUM_WORKERS = 1
-ROLLOUT_STEPS = 13
+ROLLOUT_STEPS = 2
 GRID_SIZE = (192, 192)
 BOUNDARY = 8
 DEVICE = None

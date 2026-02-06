@@ -35,7 +35,7 @@ def create_spatial_weights(H=192, W=192, boundary=8, device=torch.device('cpu'))
 # 給定要看的日期時間字串（必須跟檔名裡的一樣，例如 '2024122718'）
 TIME_TAG = "2025070500"
 
-INPUT_DIR = Path(r"inference_outputs\2025070500_2025070500")
+INPUT_DIR = Path(r"inference_outputs\2025070500_2025070500test3")
 #TARGET_DIR = Path(r"UnetGNNgate7_fix_attention_target_GS192x192_BS1_E1_LR0.001_WD0.1_HD512_PRL16-16-12-8-6_ACC4_SEED3407_FFN2")
 OUTPUT_DIR = INPUT_DIR / "figures"
 TARGET_KEY = "target"
@@ -43,7 +43,7 @@ PROCESS_BASE_DIR = Path("inference_outputs")
 
 # 只要檔名裡有這個時間字串 + "_step" 就會被抓到
 STEP_PATTERN = f"*{TIME_TAG}*_step*.npz"
-CHANNELS = [59, 76, 85, 86, 87]  # Channels to visualize.
+CHANNELS = [59, 76, 79, 80, 85, 86, 87]  # Channels to visualize.
 SHOW_FIGURE = False
 VALUE_COLORMAP = "viridis"
 MSE_COLORMAP = "magma"

@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from datasetM_tisr import process_data_step, move_to_device                 # 使用你剛改好的介面
+from datasetM_tisr2 import process_data_step, move_to_device                 # 使用你剛改好的介面
 
 BASE_DIR = os.path.dirname(__file__)
 logger = logging.getLogger(__name__)
