@@ -1,80 +1,148 @@
-Top-level orchestration
+以下為**可直接貼入 Markdown (`.md`) 文件**的格式版本，已整理為標準層級與程式碼區塊結構。
 
-data_operational.py: end-to-end data pipeline driver (download ERA5 GRIBs → process to NPZ → NaN checks/fixes → SWH resize).
+---
 
-inference_operational.py: end-to-end inference driver (time range filter, dataset init, model load, autoregressive rollout/save).
+# Repository Map
 
-compare_difference.py, vis_muliti_step.py: post-processing/visualization utilities.
+## Top-level Orchestration
 
-Data ingestion & preprocessing (data_collect/)
+* **`data_operational.py`**
+  End-to-end data pipeline driver
+  （download ERA5 GRIBs → process to NPZ → NaN checks/fixes → SWH resize）
 
-Downloaders:
+* **`inference_operational.py`**
+  End-to-end inference driver
+  （time range filter → dataset init → model load → autoregressive rollout → save）
 
-download_prs_operational.py
+* **`compare_difference.py`**
+  Post-processing / comparison utilities
 
-download_sfc_regular_operational.py
+* **`vis_muliti_step.py`**
+  Multi-step visualization utilities
 
-download_sfc_average_operational.py
+---
 
-GRIB→NPZ processors:
+## Data Ingestion & Preprocessing (`data_collect/`)
 
-process_prs_operational.py
+### Downloaders
 
-process_regular_operational.py
+* `download_prs_operational.py`
+* `download_sfc_regular_operational.py`
+* `download_sfc_average_operational.py`
 
-process_average_operational.py
+### GRIB → NPZ Processors
 
-process_time_operational.py
+* `process_prs_operational.py`
+* `process_regular_operational.py`
+* `process_average_operational.py`
+* `process_time_operational.py`
 
-Data quality / repair:
+### Data Quality / Repair
 
-check_nan_prs.py
+* `check_nan_prs.py`
+* `process_all_nan_filling.py`
+* `resize_swh.py`
 
-process_all_nan_filling.py
+---
 
-resize_swh.py
+## Inference / Data Assembly (`inference/`)
 
-Inference/data assembly (inference/)
+* **`datasetM_tisr2.py`**
+  Main graph dataset
 
-datasetM_tisr2.py: main graph dataset, feature loading/normalization, multi-step target construction, autoregressive feature refresh (process_data_step).
+  * Feature loading / normalization
+  * Multi-step target construction
+  * Autoregressive feature refresh (`process_data_step`)
 
-val_autoregressive.py: rollout loop, autocast, boundary truth patching, NPZ dumps.
+* **`val_autoregressive.py`**
 
-toa.py: TOA radiation integration utilities (NOAA / PVLib / ERA5-like variants).
+  * Rollout loop
+  * Autocast
+  * Boundary truth patching
+  * NPZ dumps
 
-Feature schema/stats CSVs:
+* **`toa.py`**
+  TOA radiation integration utilities
+  (NOAA / PVLib / ERA5-like variants)
 
-current_feature_table.csv, next_feature_table*.csv, target_mean_std.csv.
+### Feature Schema / Statistics CSVs
 
-Model (model/)
+* `current_feature_table.csv`
+* `next_feature_table*.csv`
+* `target_mean_std.csv`
 
-model_unet.py: HeteroGNN encoder-pool-processor-upsample-decoder graph U-Net.
+---
 
-SG_module.py: SGFormer-style global attention block.
+## Model (`model/`)
 
-layer/:
+### Core Architecture
 
-gat_edge_before_ffnG_fix.py
+* **`model_unet.py`**
+  HeteroGNN encoder → pool → processor → upsample → decoder (Graph U-Net)
 
-gatv2convNG.py
+* **`SG_module.py`**
+  SGFormer-style global attention block
 
-gat_edge_ffn_upG_fix.py
+### Layers (`model/layer/`)
 
-processor__blockG.py
+* `gat_edge_before_ffnG_fix.py`
+* `gatv2convNG.py`
+* `gat_edge_ffn_upG_fix.py`
+* `processor__blockG.py`
 
-Uses hetero graph template file model/hetero_graph_normalized.pt (loaded from dataset).
+### Graph Template
 
-Static stats/data
+* `model/hetero_graph_normalized.pt`
+  (Loaded by dataset as hetero graph template)
 
-npz/*.csv: variable mean/std/min/max used for normalization and inverse scaling.
+---
 
-Data flow (high-level)
-data_operational.py downloads ERA5 monthly GRIB files.
+## Static Statistics / Normalization Data
 
-Processing scripts convert to time-indexed NPZ slices under npz/operational/{prs,sfc,time}.
+* `npz/*.csv`
+  Variable:
 
-WeatherGraphNPZDataset loads current/previous/future NPZ, normalizes features, attaches graph constants + step feature.
+  * mean
+  * std
+  * min
+  * max
 
-HeteroGNN predicts grid increments/residual-like outputs.
+  Used for normalization and inverse scaling.
 
-validate_autoregressive converts outputs to next-step state, patches boundaries with truth, rolls forward, saves per-step NPZ.
+---
+
+# Data Flow (High-Level)
+
+```
+data_operational.py
+    ↓
+Download ERA5 monthly GRIB files
+    ↓
+Processing scripts
+    ↓
+Time-indexed NPZ slices
+(npz/operational/{prs,sfc,time})
+    ↓
+WeatherGraphNPZDataset
+    - Load current / previous / future NPZ
+    - Normalize features
+    - Attach graph constants + step feature
+    ↓
+HeteroGNN
+    - Predict grid increments / residual-like outputs
+    ↓
+validate_autoregressive
+    - Convert outputs to next-step state
+    - Patch boundaries with truth
+    - Roll forward
+    - Save per-step NPZ
+```
+
+---
+
+如果你需要，我也可以幫你轉成：
+
+* ✅ README 專業版本（含系統架構圖）
+* ✅ Mermaid 架構圖（可在 GitHub 直接渲染）
+* ✅ Paper appendix 風格說明版本
+* ✅ 加入 training/inference separation 的 deployment 說明版本
